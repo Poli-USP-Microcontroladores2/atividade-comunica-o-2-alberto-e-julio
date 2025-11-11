@@ -7,8 +7,8 @@ Atividade: Comunicação UART
 
 * Dupla:
 
-  * Integrante 1:
-  * Integrante 2:
+  * Integrante 1: Alberto Galhego Neto - 17019141
+  * Integrante 2: Júlio Cesar Braga Parro - 16879560
 
 * Objetivo: implementar, testar e documentar aplicações de comunicação UART baseadas nos exemplos oficiais “echo_bot” e “async_api”, utilizando desenvolvimento orientado a testes, diagramas de sequência D2 e registro de evidências.
 
@@ -32,51 +32,81 @@ docs/
 
 ## 3.1 Descrição do Funcionamento
 
-Descrever aqui de forma textual o comportamento esperado baseado no exemplo oficial.
-Link usado como referência:
+- O Echo Bot utiliza o UART para receber uma mensagem enviada pelo usuário via serial monitor e retorna a mesma mensagem copiada, na forma "Echo: MENSAGEM". 
+- Ao ser iniciado, o echo bot exibe no terminal as mensagens "Hello! I'm your echo bot." e "Tell me something and press enter:". 
+- Em seguida, o usuário pode digitar qualquer texto no monitor serial e pressionar Enter, o programa então detecta o fim da linha, interpreta o que foi digitado e envia de volta a mesma mensagem na forma “Echo: MENSAGEM”, mostrando-a no terminal. Esse processo de retorno de mensagens pode se repetir continuamente.
+
+- Link usado como referência:
 [https://docs.zephyrproject.org/latest/samples/drivers/uart/echo_bot/README.html](https://docs.zephyrproject.org/latest/samples/drivers/uart/echo_bot/README.html)
 
 ## 3.2 Casos de Teste Planejados (TDD)
 
 ### CT1 – Eco básico
 
-* Entrada:
-* Saída esperada:
-* Critério de Aceitação:
+* Entrada: "Hello, World!"
+* Saída esperada: "Echo: Hello, World!"
+* Critério de Aceitação: O echo bot deve retornar a mesma mensagem que o usuário envia pelo serial monitor, na forma "Echo: MENSAGEM", sem haver conflito de caracteres, ou seja, retornar "Echo: Hello, World!".
 
 ### CT2 – Linha vazia
 
+* Entrada: "" (Apenas um ENTER)
+* Saída esperada: "Echo:"
+* Critério de Aceitação: O echo bot deve retornar a mesma mensagem que o usuário envia pelo serial monitor, na forma "Echo: MENSAGEM", ou seja, "Echo:"
+
 ### CT3 – Linha longa
 
-(Adicionar mais casos se necessário.)
+* Entrada: "Oi, echo bot, estou testando o seu funcionamento com uma mensagem longa"
+* Saída esperada: "Echo: Oi, echo bot, estou testando o"
+* Critério de Aceitação: O echo bot deve retornar o começo da mensagem da mesma forma que foi enviada, sem houver alteração de caracteres, mas de forma incompleta, devido ao limite de 30 caracteres que ele pode retornar. Os espaços também são considerados como caracteres.
+
+### CT4 – Caracteres especiais e acentos
+
+* Entrada: "# Olá, çê @ ã"
+* Saída esperada: "Echo: # Olá, çê @ ã"
+* Critério de Aceitação: O echo bot deve retornar a mesma mensagem que o usuário envia pelo serial monitor, na forma "Echo: MENSAGEM", sem haver conflito de caracteres. Pode ser que a mensagem seja retornada na linha logo abaixo da linha com "Echo:".
 
 ## 3.3 Implementação
 
-* Arquivo(s) modificados:
-* Justificativa das alterações:
+* Arquivo(s) modificados: Modificou-se os arquivos main.c e prj.conf, colocando os códigos coletados do código de exemplo.
+* Justificativa das alterações: Criou-se um novo projeto no Platform IO, com as configurações básicas copiadas de aulas anterriores, e inseriu-se o main.c e prj.conf coletados do exemplo do link de referência. O prj.conf configura a comunicação serial e configura o UART. Dessa forma, o código funcionou normalmente, sem necessitar de maiores alterações.
 
 ## 3.4 Evidências de Funcionamento
 
-Salvar evidências em `docs/evidence/echo_bot/`.
-
-Exemplo de referência no README:
+Evidências salvas em `Etapa_1/docs/evidence/`.
 
 ```
-[Link para o log CT1](docs/evidence/echo_bot/ct1_output.txt)
+[Link para o log dos testes](Etapa_1\docs\evidence\Testes_Etapa1.png)
 ```
 
-Adicionar aqui pequenos trechos ilustrativos:
+Trechos ilustrativos do output:
 
+- Teste CT1:
 ```
 Hello! I'm your echo bot. Tell me something and press enter:
 Echo: Hello World!
 ```
 
+- Teste CT2:
+```
+Hello! I'm your echo bot. Tell me something and press enter:
+Echo:
+```
+
+- Teste CT3:
+```
+Hello! I'm your echo bot. Tell me something and press enter:
+Echo: Oi, echo bot, estou testando o
+```
+
+- Teste CT4:
+```
+Hello! I'm your echo bot. Tell me something and press enter:
+Echo: # Olá, çê @ ã
+```
+
 ## 3.5 Diagramas de Sequência D2
 
-Vide material de apoio: https://d2lang.com/tour/sequence-diagrams/
-
-Adicionar arquivos (diagrama completo e o código-base para geração do diagrama) em `docs/sequence-diagrams/`.
+Arquivos dos diagramas (diagrama completo e o código-base para geração do diagrama) adicionados em `Etapa_1/docs/sequence-diagrams/`.
 
 ---
 
