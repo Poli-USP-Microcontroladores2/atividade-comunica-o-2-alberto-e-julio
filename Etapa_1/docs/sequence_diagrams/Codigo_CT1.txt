@@ -1,7 +1,7 @@
 shape: sequence_diagram
 
-App -> User: "Hello! I'm your echo bot.\n"
-App -> User: "Tell me something and press enter:\n"
+User <- App: "Hello! I'm your echo bot.\n"
+User <- App: "Tell me something and press enter:\n"
 User -> App: "Hello, World!\n"
 App -> UART_Driver: uart_poll_out()
 UART_Hardware -> UART_Driver: tx_done interrupt
