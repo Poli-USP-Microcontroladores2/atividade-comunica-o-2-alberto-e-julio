@@ -1,84 +1,112 @@
-/*
- * Copyright (c) 2024 Gemini Code Assist
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
+#include <string.h>
 
-/* Use the shell UART instance by default */
+LOG_MODULE_REGISTER(LOG_INF_APP, LOG_LEVEL_INF);
+
+/* change this to any other UART peripheral if desired */
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
+#define MSG_SIZE 32
 
-LOG_MODULE_REGISTER(uart_async_sample, LOG_LEVEL_INF);
+/* queue to store up to 10 messages (aligned to 4-byte boundary) */
+K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 4);
 
-/* UART device struct */
 static const struct device *const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 
-/* Semaphore to signal TX completion */
-static K_SEM_DEFINE(tx_done_sem, 1, 1);
+/* receive buffer used in UART ISR callback */
+static char rx_buf[MSG_SIZE];
+static int rx_buf_pos;
 
-/* Single byte buffer for transmission */
-static uint8_t tx_buf;
-
-/**
- * @brief UART Interrupt Service Routine
- *
- * @param dev The UART device structure
- * @param user_data User-defined data
+/*
+ * Read characters from UART until line end is detected. Afterwards push the
+ * data to the message queue.
  */
-static void uart_isr(const struct device *dev, void *user_data)
+void serial_cb(const struct device *dev, void *user_data)
 {
-	/* This ISR is called for every UART interrupt, so we check why it was called. */
-	if (uart_irq_tx_ready(dev)) {
-		/* The transmitter is ready to accept a new character.
-		 * Since we are only sending one byte, we can now disable the TX interrupt.
-		 */
-		uart_irq_tx_disable(dev);
+	uint8_t c;
 
-		/* Signal that the transmission is complete. */
-		k_sem_give(&tx_done_sem);
+	if (!uart_irq_update(uart_dev)) {
+		return;
+	}
+
+	if (!uart_irq_rx_ready(uart_dev)) {
+		return;
+	}
+
+	/* read until FIFO empty */
+	while (uart_fifo_read(uart_dev, &c, 1) == 1) {
+		if ((c == '\n' || c == '\r') && rx_buf_pos > 0) {
+			/* terminate string */
+			rx_buf[rx_buf_pos] = '\0';
+
+			/* if queue is full, message is silently dropped */
+			k_msgq_put(&uart_msgq, &rx_buf, K_NO_WAIT);
+
+			/* reset the buffer (it was copied to the msgq) */
+			rx_buf_pos = 0;
+		} else if (rx_buf_pos < (sizeof(rx_buf) - 1)) {
+			rx_buf[rx_buf_pos++] = c;
+		}
+		/* else: characters beyond buffer size are dropped */
+	}
+}
+
+/*
+ * Print a null-terminated string character by character to the UART interface
+ */
+void print_uart(char *buf)
+{
+	int msg_len = strlen(buf);
+
+	for (int i = 0; i < msg_len; i++) {
+		uart_poll_out(uart_dev, buf[i]);
 	}
 }
 
 int main(void)
 {
-	int ret;
-
-	/* Check if the UART device is ready */
 	if (!device_is_ready(uart_dev)) {
-		LOG_ERR("UART device not found!");
+		printk("UART device not found!");
 		return 0;
 	}
 
-	/* Set the ISR. This function will be called when a UART interrupt occurs. */
-	uart_irq_callback_user_data_set(uart_dev, uart_isr, NULL);
-
-	LOG_INF("UART Interrupt API sample started. Will send a random byte every 1s.");
-
-	while (1) {
-		/* Wait until the previous transmission is done */
-		k_sem_take(&tx_done_sem, K_FOREVER);
-
-		/* Generate a random byte */
-		/* Use the low bits of the hardware cycle counter as a pseudo-random value */
-		tx_buf = (uint8_t)k_cycle_get_32();
-
-		LOG_INF("Sending byte: 0x%02x", tx_buf);
-
-		/*
-		 * 1. Enable the TX interrupt. The ISR will be called when the transmitter is empty.
-		 * 2. Start the transmission. uart_tx will place the byte in the buffer and return.
-		 */
-		uart_irq_tx_enable(uart_dev);
-		ret = uart_tx(uart_dev, &tx_buf, sizeof(tx_buf), SYS_FOREVER_US);
-		/* We don't check the return of uart_tx here as it's less critical in this flow */
-
-		/* Wait for 1 second before the next transmission */
-		k_sleep(K_SECONDS(1));
+	/* configure interrupt and callback to receive data */
+	int ret = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
+	if (ret < 0) {
+		if (ret == -ENOTSUP) {
+			printk("Interrupt-driven UART API support not enabled\n");
+		} else if (ret == -ENOSYS) {
+			printk("UART device does not support interrupt-driven API\n");
+		} else {
+			printk("Error setting UART callback: %d\n", ret);
+		}
+		return 0;
 	}
+	uart_irq_rx_enable(uart_dev);
 
+	print_uart("Hello! I'm your echo bot.\r\n");
+	print_uart("Tell me something and press enter:\r\n");
+
+	char tx_buf[MSG_SIZE];
+
+	while (1)
+	{
+		print_uart("R");
+		k_msleep(50);
+		print_uart("G");
+		//print_uart("\r\n");
+		k_msleep(200);
+	}
+	
+	/* indefinitely wait for input from the user 
+	while (k_msgq_get(&uart_msgq, &tx_buf, K_FOREVER) == 0) {
+		//print_uart("Echo: ");
+		print_uart(tx_buf);
+		print_uart("\r\n");
+	}
+	*/
 	return 0;
 }

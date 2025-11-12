@@ -58,6 +58,10 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "cmake.sourceDirectory": "C:/Users/Desktop/Desktop/USP/2Semestre/MicroC/Programas/Aula3/PrimeiroBranch/prioridades-AlbertoGNeto/zephyr",
   "files.associations": {
-    "random.h": "c"
+    "random.h": "c",
+    "uart.h": "c",
+    "kernel.h": "c",
+    "gpio.h": "c",
+    "printk.h": "c"
   }
 }
