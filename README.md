@@ -114,8 +114,9 @@ Arquivos dos diagramas (diagrama completo e o código-base para geração do dia
 
 ## 4.1 Descrição do Funcionamento
 
-Descrever o comportamento esperado de forma textual, especialmente com a alternância TX/RX.
-Link usado como referência:
+- O programa alterna continuamente entre transmissão e recepção UART a cada 5 segundos: em cada ciclo, ele envia de 1 a 4 pacotes de texto com identificadores de loop e pacote, tratando interrupções de transmissão e fila de envio. Ao final da fase de TX, ele alterna o estado do receptor — habilitando o RX para receber dados assíncronos e mostrar no log o conteúdo recebido, ou desabilitando-o no ciclo seguinte — repetindo esse processo indefinidamente enquanto registra no log cada troca de modo e evento UART.
+
+- Link usado como referência:
 [https://docs.zephyrproject.org/latest/samples/drivers/uart/async_api/README.html](https://docs.zephyrproject.org/latest/samples/drivers/uart/async_api/README.html)
 
 ## 4.2 Casos de Teste Planejados (TDD)
@@ -166,5 +167,5 @@ Adicionar arquivos (diagrama completo e o código-base para geração do diagram
 
 # 5. Conclusões da Dupla
 
-* O que deu certo:
-* O que foi mais desafiador:
+* O que deu certo: Na etapa 1, o código do Echo Bot, que utiliza a implementação por interrupção, funcionou corretamente sem haver necessidade de muitas mudanças. Os testes funcionaram corretamente e a implementação e verificação foi simples. 
+* O que foi mais desafiador: Na etapa 2, o código que utiliza a implementação por Async API não funciona corretamente na placa FRDM KL25Z que utilizamos. Portanto, houve a necessidade de adaptar o código por interrupção (Echo Bot) para realizar as tarefas feitas pelo código async, de modo a diferenciar momentos em que há apenas TX ou apenas RX.
