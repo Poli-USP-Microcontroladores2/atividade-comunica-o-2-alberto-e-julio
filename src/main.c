@@ -59,11 +59,6 @@ void serial_cb(const struct device *dev, void *user_data)
 {
 	uint8_t c;
 
-	// Only process data if we are in the receiving state
-	if (!atomic_get(&g_is_receiving)) {
-		return;
-	}
-
 	if (!uart_irq_update(uart_dev)) {
 		return;
 	}
@@ -72,8 +67,15 @@ void serial_cb(const struct device *dev, void *user_data)
 		return;
 	}
 
+	bool is_receiving = atomic_get(&g_is_receiving);
+
 	/* read until FIFO empty */
 	while (uart_fifo_read(uart_dev, &c, 1) == 1) {
+		if (!is_receiving) {
+			// Not in receive state, just discard the character to keep FIFO clear
+			continue;
+		}
+
 		if ((c == '\n' || c == '\r') && rx_buf_pos > 0) {
 			/* terminate string */
 			rx_buf[rx_buf_pos] = '\0';
