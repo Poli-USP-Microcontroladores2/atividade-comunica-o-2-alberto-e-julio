@@ -110,13 +110,13 @@ void transmit_thread(void *p1, void *p2, void *p3)
 		sys_rand_get(&random_char_selector, sizeof(random_char_selector));
 		switch (random_char_selector % 3) {
 		case 0:
-			print_uart("Resposta 1\r\n");
+			print_uart("Message 1\r\n");
 			break;
 		case 1:
-			print_uart("Opcao 2\r\n");
+			print_uart("Option 2\r\n");
 			break;
 		case 2:
-			print_uart("Terceira Escolha\r\n");
+			print_uart("Third Option\r\n");
 			break;
 		}
 		// Sleep to avoid flooding the channel
@@ -159,7 +159,7 @@ void cycle_timer_handler(struct k_timer *timer_id)
 		k_msgq_purge(&uart_msgq); // Purge queue to remove stale data
 		rx_buf_pos = 0; // Reset buffer position
 		k_thread_resume(receive_tid);
-		print_uart("--- Ciclo Recepcao ---\r\n");
+		print_uart("--- Receive Phase ---\r\n");
 		gpio_pin_set_dt(&led_blue, 1); // Blink Blue LED to indicate receive cycle
 		k_msleep(100);
 		gpio_pin_set_dt(&led_blue, 0);
@@ -170,7 +170,7 @@ void cycle_timer_handler(struct k_timer *timer_id)
 		atomic_set(&g_current_state, STATE_TRANSMIT);
 		atomic_set(&g_is_receiving, 0); // Prevent ISR from processing data
 		k_thread_resume(transmit_tid);
-		print_uart("--- Ciclo Transmissao ---\r\n");
+		print_uart("--- Transmission Phase ---\r\n");
 		gpio_pin_set_dt(&led_red, 1); // Blink Red LED to indicate transmit cycle
 		k_msleep(100);
 		gpio_pin_set_dt(&led_red, 0);
@@ -181,11 +181,11 @@ K_TIMER_DEFINE(cycle_timer, cycle_timer_handler, NULL);
 
 int main(void)
 {
-	LOG_INF("Main Thread - Iniciando - V: %s - %s \n", __DATE__, __TIME__);
-	k_msleep(100); //Para dar tempo de printar o Log
+	LOG_INF("Main Thread - Starting... - V: %s - %s \n", __DATE__, __TIME__);
+	k_msleep(100); //Allow time to print the log
 	// Setup LEDs
     if (!device_is_ready(led_green.port) || !device_is_ready(led_red.port) || !device_is_ready(led_blue.port)){
-        LOG_ERR("Erro ao inicializar LED");
+        LOG_ERR("LED is not ready");
         return 1;
     }
 
@@ -193,17 +193,10 @@ int main(void)
     gpio_pin_configure_dt(&led_red, GPIO_OUTPUT_INACTIVE);
 	gpio_pin_configure_dt(&led_blue, GPIO_OUTPUT_INACTIVE);
 
-	//Redundante, ja que iniciamos inativo, mas por algum motivo as vezes buga.
-	gpio_pin_set_dt(&led_green, 0);  //Desliga LED verde 
-    gpio_pin_set_dt(&led_red, 0);  //Desliga LED vermelho
-	gpio_pin_set_dt(&led_blue, 0);  //Desliga LED azul
-
-
 	if (!device_is_ready(uart_dev)) {
 		printk("UART device not found!");
 		return 0;
 	}
-	
 
 	/* configure interrupt and callback to receive data */
 	int ret = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
@@ -219,10 +212,7 @@ int main(void)
 		return 0;
 	}
 
-
 	uart_irq_rx_enable(uart_dev); // Enable RX interrupts permanently
-
-
 
 	// Create and start threads
 	transmit_tid = k_thread_create(&transmit_thread_data, transmit_stack_area,
@@ -237,9 +227,9 @@ int main(void)
 
 	k_timer_start(&cycle_timer, K_MSEC(CYCLE_DURATION_MS), K_MSEC(CYCLE_DURATION_MS));
 
-	// The main thread can sleep forever, the timer and threads will handle the work.
+	// The main thread can sleep
 	while(1){
-		k_msleep(1000);
+		k_msleep(1000); //For some reason, the system was bugging when using k_forever. Consider increasing the value if necessary, but since the cost is low...
 	}
 
 	return 0;
