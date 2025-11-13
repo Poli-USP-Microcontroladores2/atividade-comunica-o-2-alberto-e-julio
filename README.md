@@ -112,58 +112,71 @@ Arquivos dos diagramas (diagrama completo e o código-base para geração do dia
 
 # 4. Etapa 2 – Async API (Transmissão/Recepção Assíncrona)
 
+## Observação
+
+- Por conta de limitações da placa, não foi possível implementar a Async API. Como solução, a atividade foi realizada utilizando interrupt.
+
 ## 4.1 Descrição do Funcionamento
 
-- O programa alterna continuamente entre transmissão e recepção UART a cada 5 segundos: em cada ciclo, ele envia de 1 a 4 pacotes de texto com identificadores de loop e pacote, tratando interrupções de transmissão e fila de envio. Ao final da fase de TX, ele alterna o estado do receptor — habilitando o RX para receber dados assíncronos e mostrar no log o conteúdo recebido, ou desabilitando-o no ciclo seguinte — repetindo esse processo indefinidamente enquanto registra no log cada troca de modo e evento UART.
+- O programa alterna continuamente entre o modo de transmissão e o modo de recepção UART a cada 10 segundos:
+	-Modo de Transmissão:
+		-O programa envia uma mensagem aleatória a cada 500ms. A mensagem é escolhida entre 3 possibilidades: "Message 1", "Option 2" e "Third Option".
+		-Durante esse período, qualquer mensagem recebida é ignorada.
+		
+	-Modo Recepção:
+		-O programa não realiza o envio de mensagens durante esse período.
+		-Ao receber "red", "blue" ou "green", a placa pisca brevemente o LED correspondente.
+		
+- Cada Modo é gerenciado por um Thread diferente, coordenados por um timer, que os controla usando k_thread_resume() e k_thread_suspend().
 
-- Link usado como referência:
+- Links usados como referências:
 [https://docs.zephyrproject.org/latest/samples/drivers/uart/async_api/README.html](https://docs.zephyrproject.org/latest/samples/drivers/uart/async_api/README.html)
+[https://docs.zephyrproject.org/latest/samples/drivers/uart/echo_bot/README.html](https://docs.zephyrproject.org/latest/samples/drivers/uart/echo_bot/README.html)
 
 ## 4.2 Casos de Teste Planejados (TDD)
 
-### CT1 – Transmissão de pacotes a cada 5s
+### CT1 – Transmissão de pacotes a cada 500ms
 
-### CT2 – Recepção
+* Entrada: -
+* Saída esperada: "Teste!"
+* Critério de Aceitação: O programa deve enviar a mensagem "Teste!" a cada 500ms.
 
-### CT3 – Verificação de timing dos 5s
+### CT2 – Transmissão de mensagens aleatórias
 
-(Adicionar mais casos se necessário.)
+* Entrada: -
+* Saída esperada: "Message 1", "Option 2" e "Third Option", escolhidas aleatoriamente.
+* Critério de Aceitação: O programa deve enviar uma das mensagens possíveis a cada 500ms.
+
+### CT3 – Implementação dos Ciclos
+
+* Entrada: -
+* Saída esperada: "Message 1", "Option 2" e "Third Option" APENAS durante o ciclo de transmissão. Durante o período de recebimento, ainda não implementado, não deverá enviar mensagem alguma.
+* Critério de Aceitação: O programa deve enviar uma das mensagens possíveis a cada 500ms, mas somente durante o ciclo de transmissão. Deverá trocar o ciclo a cada 10s.
+
+### CT4 – Implementação do Recebimento
+
+* Entrada: Qualquer mensagem
+* Saída esperada: Durante o período de transmissão, o mesmo comportamento do teste 3. Durante o ciclo de recebimento, e apenas durante ele, o LED deverá piscar sempre que receber uma mensagem, independente do seu conteúdo.
+* Critério de Aceitação: O programa deve enviar uma das mensagens possíveis a cada 500ms, mas somente durante o ciclo de transmissão. Durante o ciclo de recebimento, o programa deverá piscar o led sempre que receber uma mensagem, ignorando mensagens recebidas fora desse período.
+
+### CT5 – Implementação das Cores
+
+* Entrada: "red", "green" ou "blue"
+* Saída esperada: Além do comportamento do teste 4, o LED deverá piscar de acordo com a mensagem recebida, piscando o LED azul se receber "blue", o LED verde se receber "green" ou o LED vermelho se "red", devendo ignorar qualquer outra mensagem.
+* Critério de Aceitação: O programa envia as mensagens durante o período de transmissão. Durante o período de recepção, pisca os LEDs adequadamente.
 
 ## 4.3 Implementação
 
-* Arquivos modificados:
-* Motivos/Justificativas:
+* Arquivo(s) modificados: Modificou-se os arquivos main.c e prj.conf.
+* Motivos/Justificativas: Implementação de funções extras do kernel, que requerem a declaração prévia no prj.conf. Implementação de novas funções. Reestruturação do código.
 
 ## 4.4 Evidências de Funcionamento
 
-Salvar em `docs/evidence/async_api/`.
-
-Exemplo:
-
-```
-Loop 0:
-Sending 3 packets (packet size: 5)
-Packet: 0
-Packet: 1
-Packet: 2
-```
-
-Ou:
-
-```
-RX is now enabled
-UART callback: RX_RDY
-Data (HEX): 48 65 6C 6C 6F
-Data (ASCII): Hello
-```
+Evidências salvas em `Etapa_2/docs/evidence/`.
 
 ## 4.5 Diagramas de Sequência D2
 
-Vide material de referência: https://d2lang.com/tour/sequence-diagrams/
-
-Adicionar arquivos (diagrama completo e o código-base para geração do diagrama) em `docs/sequence-diagrams/`.
-
----
+Arquivos dos diagramas (diagrama completo e o código-base para geração do diagrama) adicionados em `Etapa_2/docs/sequence-diagrams/`.
 
 # 5. Conclusões da Dupla
 

@@ -1,0 +1,12 @@
+shape: sequence_diagram
+
+User <- App: "--- Transmission Phase ---\n"
+User <- App: "Message 1\n"
+User <- App: "Option 2\n"
+User <- App: "Third Option\n"
+User <- App: "--- Receive Phase ---\n"
+User -> App: "red\n"
+App -> UART_Driver: uart_poll_out()
+UART_Hardware -> UART_Driver: tx_done interrupt
+UART_Driver -> App: callback()
+App -> LED: gpio_pin_set_dt(&led_red, 1)
